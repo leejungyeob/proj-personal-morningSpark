@@ -5,6 +5,9 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { AdMobBanner, AdMobInterstitial } from 'expo-ads-admob';
 
+import Home from './src/screens/Home';
+import SettingsModal from './src/components/SettingsModal';
+
 const PROMPTS_KEY = 'savedPrompts';
 const NOTIF_KEY = 'notifScheduled';
 const NOTIF_TIME_KEY = 'notifTime';
@@ -93,21 +96,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}><Text style={styles.title}>MorningSpark</Text><TouchableOpacity onPress={()=>setSettingsVisible(true)}><Text style={styles.settingsBtn}>Settings</Text></TouchableOpacity></View>
-      <View style={styles.card}>
-        <Text style={styles.small}>오늘의 프롬프트</Text>
-        <Text style={styles.prompt}>{today.text}</Text>
-        <View style={styles.row}>
-          <Button title="Save" onPress={savePrompt} />
-          <Button title="Share" onPress={onShare} />
-          <Button title="Next" onPress={nextPrompt} />
-        </View>
-      </View>
-
-      <Text style={styles.subtitle}>Saved</Text>
-      <FlatList data={saved} keyExtractor={i=>i.savedAt.toString()} renderItem={({item})=> (
-        <View style={styles.savedItem}><Text style={styles.savedText}>{item.text}</Text></View>
-      )} />
+      <Home today={today} saved={saved} onSave={savePrompt} onShare={onShare} onNext={nextPrompt} />
 
       <View style={{marginTop:20}}>
         <AdMobBanner
@@ -118,38 +107,15 @@ export default function App() {
         />
       </View>
 
-      <Modal visible={settingsVisible} animationType="slide">
-        <View style={[styles.modalContainer, theme==='light' && styles.modalContainerLight]}>
-          <Text style={[styles.modalTitle, theme==='light' && styles.modalTitleLight]}>Settings</Text>
-          <View style={styles.rowBetween}><Text style={[styles.modalLabel, theme==='light' && styles.modalLabelLight]}>Daily Reminders</Text><Switch value={notifOn} onValueChange={toggleNotif} /></View>
-          <View style={styles.rowBetween}><Text style={[styles.modalLabel, theme==='light' && styles.modalLabelLight]}>Reminder Time</Text><View style={{flexDirection:'row'}}><Button title={`${hour}`} onPress={()=>setHour((hour+1)%24)} /><Text style={{width:10}}/><Button title={`${minute}`} onPress={()=>setMinute((minute+15)%60)} /></View></View>
-          <View style={styles.rowBetween}><Text style={[styles.modalLabel, theme==='light' && styles.modalLabelLight]}>Haptic Feedback</Text><Switch value={false} onValueChange={()=>{}} /></View>
+      <SettingsModal visible={settingsVisible} onClose={()=>setSettingsVisible(false)} notifOn={notifOn} toggleNotif={toggleNotif} hour={hour} minute={minute} setHour={setHour} setMinute={setMinute} onSaveTheme={setAppTheme} theme={theme} setTheme={setAppTheme} onTest={testNotificationNow} />
 
-          <View style={{height:20}} />
-          <Button title="Save" onPress={saveNotifTime} />
-          <View style={{height:10}} />
-          <Button title="Test notification now" onPress={testNotificationNow} />
-          <View style={{height:10}} />
-
-          <View style={{height:20}} />
-          <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
-            <View>
-              <Text style={[styles.modalLabel, theme==='light' && styles.modalLabelLight]}>Theme</Text>
-              <View style={{flexDirection:'row', marginTop:8}}>
-                <TouchableOpacity onPress={()=>setAppTheme('light')} style={[styles.themePill, theme==='light' && styles.themePillActive]}><Text style={[styles.themePillText, theme==='light' && styles.themePillTextActive]}>Light</Text></TouchableOpacity>
-                <TouchableOpacity onPress={()=>setAppTheme('dark')} style={[styles.themePill, theme==='dark' && styles.themePillActive, {marginLeft:12}]}><Text style={[styles.themePillText, theme==='dark' && styles.themePillTextActive]}>Dark</Text></TouchableOpacity>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.saveChangesBtn} onPress={async ()=>{ await setAppTheme(theme); setSettingsVisible(false); }}><Text style={styles.saveChangesText}>Save Changes</Text></TouchableOpacity>
-          </View>
-
-          <View style={{height:10}} />
-          <Button title="Close" onPress={()=>setSettingsVisible(false)} />
-        </View>
-      </Modal>
+      <View style={{position:'absolute', top:40, right:20}}>
+        <TouchableOpacity onPress={()=>setSettingsVisible(true)}><Text style={{color:'#9aa6b2'}}>Settings</Text></TouchableOpacity>
+      </View>
     </View>
   );
 }
+
 
 function getRandomPrompt(){
   const idx = Math.floor(Math.random()*prompts.length);

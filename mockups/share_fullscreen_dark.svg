@@ -1,0 +1,25 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1290' height='2796' viewBox='0 0 1290 2796'>
+  <rect width='1290' height='2796' fill='#0b0f14' />
+  <text x='80' y='140' font-family='Helvetica, Arial' font-size='56' fill='#ffffff' font-weight='700'>MorningSpark</text>
+
+  <rect x='60' y='200' width='1170' height='520' rx='22' fill='#0f1620' stroke='#1e2a38' />
+  <text x='100' y='320' font-family='Helvetica, Arial' font-size='30' fill='#9aa6b2'>오늘의 프롬프트</text>
+  <text x='100' y='420' font-family='Helvetica, Arial' font-size='40' fill='#ffffff' font-weight='600'>작은 아이디어 3개를 노트에 적기</text>
+
+  <text x='100' y='500' font-family='Helvetica, Arial' font-size='18' fill='#9aa6b2'>Share sheet preview</text>
+  <rect x='80' y='540' width='1130' height='300' rx='12' fill='#0f1620' stroke='#1e2a38' />
+  <text x='695' y='680' font-family='Helvetica, Arial' font-size='20' fill='#e6eef8' text-anchor='middle'>[공유 시 공유 시트가 열립니다]</text>
+
+  <g transform='translate(100,860)'>
+    <rect x='0' y='30' width='280' height='74' rx='14' fill='#0066ff' />
+    <text x='140' y='80' font-family='Helvetica, Arial' font-size='24' fill='#fff' text-anchor='middle'>Save</text>
+    <rect x='320' y='30' width='280' height='74' rx='14' fill='#00c36a' />
+    <text x='460' y='80' font-family='Helvetica, Arial' font-size='24' fill='#fff' text-anchor='middle'>Share</text>
+    <rect x='640' y='30' width='280' height='74' rx='14' fill='#2f3742' />
+    <text x='780' y='80' font-family='Helvetica, Arial' font-size='24' fill='#fff' text-anchor='middle'>Next</text>
+  </g>
+
+  <!-- Ad banner -->
+  <rect x='60' y='2670' width='1170' height='110' rx='12' fill='#0f1620' stroke='#1e2a38' />
+  <text x='695' y='2740' font-family='Helvetica, Arial' font-size='22' fill='#93a3b7' text-anchor='middle'>[테스트 배너 광고]</text>
+</svg>
