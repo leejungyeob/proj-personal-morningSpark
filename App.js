@@ -1,22 +1,32 @@
-import React, {useEffect, useState} from 'react';
-import {View, Text, Button, StyleSheet, TouchableOpacity, FlatList, Share} from 'react-native';
+import React, {useEffect, useState, useRef} from 'react';
+import {View, Text, Button, StyleSheet, FlatList, Share, Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import { AdMobBanner } from 'expo-ads-admob';
 
 const PROMPTS_KEY = 'savedPrompts';
+const NOTIF_KEY = 'notifScheduled';
 
 const prompts = require('./prompts.json');
 
 export default function App() {
   const [today, setToday] = useState(getRandomPrompt());
   const [saved, setSaved] = useState([]);
+  const [notifScheduled, setNotifScheduled] = useState(false);
 
   useEffect(()=>{
     (async ()=>{
       const s = await AsyncStorage.getItem(PROMPTS_KEY);
       if(s) setSaved(JSON.parse(s));
+      const ns = await AsyncStorage.getItem(NOTIF_KEY);
+      if(ns) setNotifScheduled(true);
       await registerForPushNotificationsAsync();
+      if(!ns){
+        await scheduleDailyNotification(9,0); // default 09:00
+        await AsyncStorage.setItem(NOTIF_KEY,'true');
+        setNotifScheduled(true);
+      }
     })();
   },[]);
 
@@ -53,6 +63,15 @@ export default function App() {
       <FlatList data={saved} keyExtractor={i=>i.savedAt.toString()} renderItem={({item})=> (
         <View style={styles.savedItem}><Text>{item.text}</Text></View>
       )} />
+
+      <View style={{marginTop:20}}>
+        <AdMobBanner
+          bannerSize="smartBanner"
+          adUnitID={Platform.select({ios: 'ca-app-pub-3940256099942544/2934735716', android: 'ca-app-pub-3940256099942544/6300978111'})} // test IDs
+          servePersonalizedAds // true or false
+          onDidFailToReceiveAdWithError={(err)=>console.log('Ad error', err)}
+        />
+      </View>
     </View>
   );
 }
@@ -63,7 +82,10 @@ function getRandomPrompt(){
 }
 
 async function registerForPushNotificationsAsync() {
-  if (!Constants.isDevice) return;
+  if (!Constants.isDevice) {
+    console.log('Must use physical device for notifications');
+    return;
+  }
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
   if (existingStatus !== 'granted') {
@@ -74,6 +96,32 @@ async function registerForPushNotificationsAsync() {
     console.log('Failed to get push token for push notification!');
     return;
   }
+}
+
+async function scheduleDailyNotification(hour=9, minute=0){
+  // cancel previous daily notifications
+  try{
+    const ids = await Notifications.getAllScheduledNotificationsAsync();
+    for(const n of ids){
+      await Notifications.cancelScheduledNotificationAsync(n.identifier);
+    }
+  }catch(e){console.log('cancel error',e)}
+
+  const trigger = new Date();
+  trigger.setHours(hour);
+  trigger.setMinutes(minute);
+  trigger.setSeconds(0);
+  // if time already passed today, schedule for tomorrow
+  if(trigger <= new Date()) trigger.setDate(trigger.getDate()+1);
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'MorningSpark',
+      body: getRandomPrompt().text,
+      data: {type:'dailyPrompt'}
+    },
+    trigger: {hour, minute, repeats: true}
+  });
 }
 
 const styles = StyleSheet.create({
