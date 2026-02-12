@@ -1,0 +1,26 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1080' height='2340' viewBox='0 0 1080 2340'>
+  <rect width='1080' height='2340' fill='#f7f9fc' />
+  <text x='60' y='110' font-family='Helvetica, Arial' font-size='44' fill='#111' font-weight='700'>MorningSpark</text>
+  <text x='60' y='170' font-family='Helvetica, Arial' font-size='26' fill='#666'>Saved Prompts</text>
+
+  <g>
+    <rect x='40' y='220' width='1000' height='120' rx='12' fill='#fff' stroke='#eee' />
+    <text x='80' y='295' font-family='Helvetica, Arial' font-size='20' fill='#222'>짧은 산책 10분: 머리 정리용</text>
+  </g>
+
+  <g>
+    <rect x='40' y='360' width='1000' height='120' rx='12' fill='#fff' stroke='#eee' />
+    <text x='80' y='435' font-family='Helvetica, Arial' font-size='20' fill='#222'>오늘 배울 것 한 가지 정하고 20분 투자하기</text>
+  </g>
+
+  <g>
+    <rect x='40' y='500' width='1000' height='120' rx='12' fill='#fff' stroke='#eee' />
+    <text x='80' y='575' font-family='Helvetica, Arial' font-size='20' fill='#222'>복잡한 작업 하나를 25분 타이머로 끝내보기 (Pomodoro)</text>
+  </g>
+
+  <!-- empty space -->
+
+  <!-- Ad banner -->
+  <rect x='40' y='2160' width='1000' height='120' rx='12' fill='#fff' stroke='#dfe7f3' />
+  <text x='540' y='2230' font-family='Helvetica, Arial' font-size='20' fill='#666' text-anchor='middle'>[테스트 배너 광고]</text>
+</svg>
