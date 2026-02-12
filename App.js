@@ -19,6 +19,7 @@ export default function App() {
   const [notifOn, setNotifOn] = useState(true);
   const [hour, setHour] = useState(9);
   const [minute, setMinute] = useState(0);
+  const [theme, setTheme] = useState('dark'); // 'dark' or 'light'
 
   useEffect(()=>{
     (async ()=>{
@@ -32,6 +33,8 @@ export default function App() {
         setHour(parsed.hour);
         setMinute(parsed.minute);
       }
+      const th = await AsyncStorage.getItem('theme');
+      if(th) setTheme(th);
       await registerForPushNotificationsAsync();
       if(!ns){
         await scheduleDailyNotification(hour,minute); // default
@@ -50,6 +53,11 @@ export default function App() {
 
   function nextPrompt(){
     setToday(getRandomPrompt());
+  }
+
+  async function setAppTheme(t){
+    setTheme(t);
+    await AsyncStorage.setItem('theme', t);
   }
 
   async function onShare(){
@@ -111,14 +119,30 @@ export default function App() {
       </View>
 
       <Modal visible={settingsVisible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Settings</Text>
-          <View style={styles.rowBetween}><Text style={styles.modalLabel}>Notifications</Text><Switch value={notifOn} onValueChange={toggleNotif} /></View>
-          <View style={styles.timeRow}><Text style={styles.modalLabel}>Time</Text><View style={{flexDirection:'row'}}><Button title={`${hour}`} onPress={()=>setHour((hour+1)%24)} /><Text style={{width:10}}/><Button title={`${minute}`} onPress={()=>setMinute((minute+15)%60)} /></View></View>
+        <View style={[styles.modalContainer, theme==='light' && styles.modalContainerLight]}>
+          <Text style={[styles.modalTitle, theme==='light' && styles.modalTitleLight]}>Settings</Text>
+          <View style={styles.rowBetween}><Text style={[styles.modalLabel, theme==='light' && styles.modalLabelLight]}>Daily Reminders</Text><Switch value={notifOn} onValueChange={toggleNotif} /></View>
+          <View style={styles.rowBetween}><Text style={[styles.modalLabel, theme==='light' && styles.modalLabelLight]}>Reminder Time</Text><View style={{flexDirection:'row'}}><Button title={`${hour}`} onPress={()=>setHour((hour+1)%24)} /><Text style={{width:10}}/><Button title={`${minute}`} onPress={()=>setMinute((minute+15)%60)} /></View></View>
+          <View style={styles.rowBetween}><Text style={[styles.modalLabel, theme==='light' && styles.modalLabelLight]}>Haptic Feedback</Text><Switch value={false} onValueChange={()=>{}} /></View>
+
           <View style={{height:20}} />
           <Button title="Save" onPress={saveNotifTime} />
           <View style={{height:10}} />
           <Button title="Test notification now" onPress={testNotificationNow} />
+          <View style={{height:10}} />
+
+          <View style={{height:20}} />
+          <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
+            <View>
+              <Text style={[styles.modalLabel, theme==='light' && styles.modalLabelLight]}>Theme</Text>
+              <View style={{flexDirection:'row', marginTop:8}}>
+                <TouchableOpacity onPress={()=>setAppTheme('light')} style={[styles.themePill, theme==='light' && styles.themePillActive]}><Text style={[styles.themePillText, theme==='light' && styles.themePillTextActive]}>Light</Text></TouchableOpacity>
+                <TouchableOpacity onPress={()=>setAppTheme('dark')} style={[styles.themePill, theme==='dark' && styles.themePillActive, {marginLeft:12}]}><Text style={[styles.themePillText, theme==='dark' && styles.themePillTextActive]}>Dark</Text></TouchableOpacity>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.saveChangesBtn} onPress={async ()=>{ await setAppTheme(theme); setSettingsVisible(false); }}><Text style={styles.saveChangesText}>Save Changes</Text></TouchableOpacity>
+          </View>
+
           <View style={{height:10}} />
           <Button title="Close" onPress={()=>setSettingsVisible(false)} />
         </View>
@@ -170,6 +194,7 @@ async function scheduleDailyNotification(hour=9, minute=0){
 }
 
 const styles = StyleSheet.create({
+  // dark theme defaults
   container:{flex:1, padding:20, paddingTop:60, backgroundColor:'#0b0f14'},
   headerRow:{flexDirection:'row', justifyContent:'space-between', alignItems:'center'},
   title:{fontSize:24, fontWeight:'700', color:'#fff'},
@@ -185,5 +210,16 @@ const styles = StyleSheet.create({
   modalTitle:{fontSize:22, fontWeight:'700', color:'#fff', marginBottom:20},
   modalLabel:{color:'#c4d0da', fontSize:16},
   rowBetween:{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:12},
-  timeRow:{flexDirection:'row', alignItems:'center', marginBottom:12}
+  timeRow:{flexDirection:'row', alignItems:'center', marginBottom:12},
+
+  // light theme overrides
+  modalContainerLight:{backgroundColor:'#f7f8fa'},
+  modalTitleLight:{color:'#1f2933'},
+  modalLabelLight:{color:'#6b7280'},
+  themePill:{paddingVertical:8, paddingHorizontal:14, borderRadius:10, backgroundColor:'#e6eef8'},
+  themePillActive:{backgroundColor:'#111827'},
+  themePillText:{color:'#111827'},
+  themePillTextActive:{color:'#fff'},
+  saveChangesBtn:{backgroundColor:'#111827', paddingVertical:14, paddingHorizontal:18, borderRadius:18},
+  saveChangesText:{color:'#fff', fontWeight:'700'}
 });
