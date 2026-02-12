@@ -1,12 +1,13 @@
 import React, {useEffect, useState, useRef} from 'react';
-import {View, Text, Button, StyleSheet, FlatList, Share, Platform} from 'react-native';
+import {View, Text, Button, StyleSheet, FlatList, Share, Platform, TouchableOpacity, Modal, Switch} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { AdMobBanner } from 'expo-ads-admob';
+import { AdMobBanner, AdMobInterstitial } from 'expo-ads-admob';
 
 const PROMPTS_KEY = 'savedPrompts';
 const NOTIF_KEY = 'notifScheduled';
+const NOTIF_TIME_KEY = 'notifTime';
 
 const prompts = require('./prompts.json');
 
@@ -14,6 +15,10 @@ export default function App() {
   const [today, setToday] = useState(getRandomPrompt());
   const [saved, setSaved] = useState([]);
   const [notifScheduled, setNotifScheduled] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [notifOn, setNotifOn] = useState(true);
+  const [hour, setHour] = useState(9);
+  const [minute, setMinute] = useState(0);
 
   useEffect(()=>{
     (async ()=>{
@@ -21,9 +26,15 @@ export default function App() {
       if(s) setSaved(JSON.parse(s));
       const ns = await AsyncStorage.getItem(NOTIF_KEY);
       if(ns) setNotifScheduled(true);
+      const nt = await AsyncStorage.getItem(NOTIF_TIME_KEY);
+      if(nt){
+        const parsed = JSON.parse(nt);
+        setHour(parsed.hour);
+        setMinute(parsed.minute);
+      }
       await registerForPushNotificationsAsync();
       if(!ns){
-        await scheduleDailyNotification(9,0); // default 09:00
+        await scheduleDailyNotification(hour,minute); // default
         await AsyncStorage.setItem(NOTIF_KEY,'true');
         setNotifScheduled(true);
       }
@@ -43,14 +54,40 @@ export default function App() {
 
   async function onShare(){
     try{
+      // show interstitial test ad on share
+      try{ await AdMobInterstitial.setAdUnitID(Platform.select({ios: 'ca-app-pub-3940256099942544/4411468910', android: 'ca-app-pub-3940256099942544/1033173712'})); await AdMobInterstitial.requestAdAsync({servePersonalizedAds: true}); await AdMobInterstitial.showAdAsync(); }catch(e){console.log('interstitial err',e)}
       await Share.share({message: today.text});
     }catch(e){console.log(e)}
   }
 
+  async function toggleNotif(val){
+    setNotifOn(val);
+    if(val){
+      await scheduleDailyNotification(hour,minute);
+      await AsyncStorage.setItem(NOTIF_KEY,'true');
+      setNotifScheduled(true);
+    }else{
+      try{ const ids = await Notifications.getAllScheduledNotificationsAsync(); for(const n of ids){ await Notifications.cancelScheduledNotificationAsync(n.identifier);} }catch(e){}
+      await AsyncStorage.removeItem(NOTIF_KEY);
+      setNotifScheduled(false);
+    }
+  }
+
+  async function saveNotifTime(){
+    await AsyncStorage.setItem(NOTIF_TIME_KEY, JSON.stringify({hour,minute}));
+    if(notifOn) await scheduleDailyNotification(hour,minute);
+    setSettingsVisible(false);
+  }
+
+  async function testNotificationNow(){
+    await Notifications.scheduleNotificationAsync({ content:{ title:'MorningSpark (테스트)', body: getRandomPrompt().text }, trigger: { seconds: 1 } });
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>MorningSpark</Text>
+      <View style={styles.headerRow}><Text style={styles.title}>MorningSpark</Text><TouchableOpacity onPress={()=>setSettingsVisible(true)}><Text style={styles.settingsBtn}>Settings</Text></TouchableOpacity></View>
       <View style={styles.card}>
+        <Text style={styles.small}>오늘의 프롬프트</Text>
         <Text style={styles.prompt}>{today.text}</Text>
         <View style={styles.row}>
           <Button title="Save" onPress={savePrompt} />
@@ -61,7 +98,7 @@ export default function App() {
 
       <Text style={styles.subtitle}>Saved</Text>
       <FlatList data={saved} keyExtractor={i=>i.savedAt.toString()} renderItem={({item})=> (
-        <View style={styles.savedItem}><Text>{item.text}</Text></View>
+        <View style={styles.savedItem}><Text style={styles.savedText}>{item.text}</Text></View>
       )} />
 
       <View style={{marginTop:20}}>
@@ -72,6 +109,20 @@ export default function App() {
           onDidFailToReceiveAdWithError={(err)=>console.log('Ad error', err)}
         />
       </View>
+
+      <Modal visible={settingsVisible} animationType="slide">
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Settings</Text>
+          <View style={styles.rowBetween}><Text style={styles.modalLabel}>Notifications</Text><Switch value={notifOn} onValueChange={toggleNotif} /></View>
+          <View style={styles.timeRow}><Text style={styles.modalLabel}>Time</Text><View style={{flexDirection:'row'}}><Button title={`${hour}`} onPress={()=>setHour((hour+1)%24)} /><Text style={{width:10}}/><Button title={`${minute}`} onPress={()=>setMinute((minute+15)%60)} /></View></View>
+          <View style={{height:20}} />
+          <Button title="Save" onPress={saveNotifTime} />
+          <View style={{height:10}} />
+          <Button title="Test notification now" onPress={testNotificationNow} />
+          <View style={{height:10}} />
+          <Button title="Close" onPress={()=>setSettingsVisible(false)} />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -107,13 +158,7 @@ async function scheduleDailyNotification(hour=9, minute=0){
     }
   }catch(e){console.log('cancel error',e)}
 
-  const trigger = new Date();
-  trigger.setHours(hour);
-  trigger.setMinutes(minute);
-  trigger.setSeconds(0);
-  // if time already passed today, schedule for tomorrow
-  if(trigger <= new Date()) trigger.setDate(trigger.getDate()+1);
-
+  // schedule repeating daily by hour/minute via trigger
   await Notifications.scheduleNotificationAsync({
     content: {
       title: 'MorningSpark',
@@ -125,11 +170,20 @@ async function scheduleDailyNotification(hour=9, minute=0){
 }
 
 const styles = StyleSheet.create({
-  container:{flex:1, padding:20, paddingTop:60},
-  title:{fontSize:24, fontWeight:'bold', marginBottom:20},
-  card:{padding:20, borderRadius:10, backgroundColor:'#fff', marginBottom:20, elevation:2},
-  prompt:{fontSize:18, marginBottom:10},
+  container:{flex:1, padding:20, paddingTop:60, backgroundColor:'#0b0f14'},
+  headerRow:{flexDirection:'row', justifyContent:'space-between', alignItems:'center'},
+  title:{fontSize:24, fontWeight:'700', color:'#fff'},
+  settingsBtn:{color:'#9aa6b2', fontSize:16},
+  card:{padding:20, borderRadius:12, backgroundColor:'#0f1620', marginBottom:20, elevation:2},
+  small:{fontSize:16, color:'#9aa6b2', marginBottom:6},
+  prompt:{fontSize:20, color:'#fff', marginBottom:10},
   row:{flexDirection:'row', justifyContent:'space-between'},
-  subtitle:{fontSize:18, fontWeight:'600', marginBottom:10},
-  savedItem:{padding:10, borderBottomWidth:1, borderColor:'#eee'}
+  subtitle:{fontSize:18, fontWeight:'600', marginBottom:10, color:'#c4d0da'},
+  savedItem:{padding:14, borderRadius:10, backgroundColor:'#0f1620', borderColor:'#1e2a38', borderWidth:1, marginBottom:12},
+  savedText:{color:'#e6eef8'},
+  modalContainer:{flex:1, padding:20, paddingTop:60, backgroundColor:'#0b0f14'},
+  modalTitle:{fontSize:22, fontWeight:'700', color:'#fff', marginBottom:20},
+  modalLabel:{color:'#c4d0da', fontSize:16},
+  rowBetween:{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:12},
+  timeRow:{flexDirection:'row', alignItems:'center', marginBottom:12}
 });
